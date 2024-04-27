@@ -8,11 +8,10 @@ module.exports = async (req, res) => {
   const categoryId = process.env.GITHUB_CATEGORY_ID;
   const limit = process.env.LIMIT;
 
-  // 构建 GraphQL 查询
   const query = `
     query {
       repository(owner: "${owner}", name: "${repoName}") {
-        discussions(last: 100, categoryId: "${categoryId}") { // 最高100条
+        discussions(last: 100, categoryId: "${categoryId}") {
           nodes {
             id
             title
@@ -33,7 +32,6 @@ module.exports = async (req, res) => {
     }
   `;
 
-  // 发送 GraphQL 请求
   const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
@@ -44,7 +42,6 @@ module.exports = async (req, res) => {
   });
   const data = await response.json();
 
-  // 提取所有评论节点
   let comments = [];
   data.data.repository.discussions.nodes.forEach(discussion => {
     discussion.comments.nodes.forEach(comment => {
@@ -52,7 +49,7 @@ module.exports = async (req, res) => {
     });
   });
 
-  // 降序排序
   comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  comments = comments.slice(0, limit);
   res.status(200).json(comments);
 };
