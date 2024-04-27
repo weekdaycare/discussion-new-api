@@ -17,12 +17,23 @@ module.exports = async (req, res) => {
             title
             comments(last: ${limit}) {
               nodes {
+                id
                 body
                 createdAt
                 url
                 author {
                   login
                   avatarUrl
+                }
+                replies(last: ${limit}) {
+                  nodes {
+                    body
+                    createdAt
+                    author {
+                      login
+                      avatarUrl
+                    }
+                  }
                 }
               }
             }
@@ -42,14 +53,31 @@ module.exports = async (req, res) => {
   });
   const data = await response.json();
 
-  let comments = [];
+  let commentsAndReplies = [];
   data.data.repository.discussions.nodes.forEach(discussion => {
     discussion.comments.nodes.forEach(comment => {
-      comments.push(comment);
+      let commentData = {
+        body: comment.body,
+        createdAt: comment.createdAt,
+        url: comment.url,
+        author: comment.author
+      };
+      commentsAndReplies.push(commentData);
+
+      // 为每个回复分配评论的 URL
+      comment.replies.nodes.forEach(reply => {
+        let replyData = {
+          body: reply.body,
+          createdAt: reply.createdAt,
+          url: comment.url, // 使用评论的 URL
+          author: reply.author
+        };
+        commentsAndReplies.push(replyData);
+      });
     });
   });
 
-  comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  comments = comments.slice(0, limit);
-  res.status(200).json(comments);
+  commentsAndReplies.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  commentsAndReplies = commentsAndReplies.slice(0, limit);
+  res.status(200).json(commentsAndReplies);
 };
