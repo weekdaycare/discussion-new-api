@@ -2,28 +2,49 @@
 
 为基于 issue 或者 discussion 的评论组件提供最新评论 `json` 文件。
 
-> 如果你抓取的不是本仓库的评论，请手动打开 Action 中的 `schedule` 工作流触发定时抓取。
 
-## 配置
+## 工作流示例
 
 ```yaml
-# 基于 issue 的评论区如 beadur
-issue:
-  enable: # true
-  github_user: "weekdaycare"
-  github_repo: "weekdaycare.github.io"
-  limit: 20 # 默认为 10
+name: Fetch Comments on Events
 
-# 基于 disccusion 的评论区如 giscus
-discussion:
-  enable: # true
-  github_user: "weekdaycare"
-  github_repo: "blog-comments"
-  category_id: "DIC_xxx" # https://giscus.app/zh-CN
-  limit: 20 # 默认为 10
+on:
+  issue_comment:
+    types: [created, edited, deleted]
+  discussion_comment:
+    types: [created, edited, deleted]
+
+jobs:
+  fetch_comments:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Fetch Comments
+        uses: weekdaycare/issue-discussion-generator@v1.0
+        with:
+          discussion_enable: # 'true'
+          issue_enbale: # 'true'
+          category_id: 'DIC_kwDONhvWjc4ClfPP' # 使用 discussion 的填写
+          limit: '20' # 默认为 10
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_repo: ${{ github.repository }}
+
+      - name: Git config
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+  
+      - name: Commit changes
+        run: |
+          cd output
+          git add .
+          git commit -m "📬 $(date +"%Y年%m月%d日-%H时%M分") GitHub Action 推送"
+          git push --force https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:comment
 ```
 
-> `GITHUB_CATEGORY_ID` :你可以在 https://giscus.app/ 中找到 `data-category-id` 注意是 ID 不是名称！
+> `category_id` :你可以在 https://giscus.app/ 中找到 `data-category-id` 注意是 ID 不是名称！
 
 ## 输出
 
