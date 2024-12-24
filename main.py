@@ -7,45 +7,53 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def load_config():
+    repo_user, repo_name = os.getenv('GITHUB_REPO', '/').split('/')
     return {
         'issue': {
             'enable': os.getenv('ISSUE_ENABLE', 'true').lower() == 'true',
-            'github_user': os.getenv('GITHUB_REPO').split('/')[0],
-            'github_repo': os.getenv('GITHUB_REPO').split('/')[1],
+            'github_user': repo_user,
+            'github_repo': repo_name,
             'limit': int(os.getenv('LIMIT', 10))
         },
         'discussion': {
             'enable': os.getenv('DISCUSSION_ENABLE', 'true').lower() == 'true',
-            'github_user': os.getenv('GITHUB_REPO').split('/')[0],
-            'github_repo': os.getenv('GITHUB_REPO').split('/')[1],
+            'github_user': repo_user,
+            'github_repo': repo_name,
             'category_id': os.getenv('CATEGORY_ID'),
             'limit': int(os.getenv('LIMIT', 10))
         }
     }
 
-def fetch_issue_comments(cfg):
-    owner = cfg['issue']['github_user']
-    repo_name = cfg['issue']['github_repo']
-    limit = cfg['issue']['limit']
-    token = os.getenv('GITHUB_TOKEN')
+def fetch_comments(url, headers, limit):
+    logging.info(f"Fetching comments from {url}")
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code != 200:
+        logging.error(f"Query failed with status code {response.status_code}: {response.text}")
+        return []
+    
+    return response.json()[:limit]
 
+def save_to_file(data, filename):
+    output_dir = 'output'
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, filename)
+    with open(output_file, 'w') as f:
+        json.dump(data, f, indent=2)
+    logging.info(f"Comments have been saved to {output_file}")
+
+def fetch_issue_comments(cfg):
+    owner, repo_name, limit = cfg['issue'].values()
+    token = os.getenv('GITHUB_TOKEN')
     url = f"https://api.github.com/repos/{owner}/{repo_name}/issues/comments"
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github.v3+json"
     }
 
-    logging.info(f"Fetching comments from {url}")
-    response = requests.get(url, headers=headers)
-
-    if response.status_code != 200:
-        logging.error(f"Query failed with status code {response.status_code}: {response.text}")
-        return
-
-    data = response.json()
-    comments_and_replies = []
-    for comment in data[:limit]:
-        comment_data = {
+    data = fetch_comments(url, headers, limit)
+    comments_and_replies = [
+        {
             'body': comment['body'],
             'createdAt': comment['created_at'],
             'url': comment['html_url'],
@@ -54,58 +62,46 @@ def fetch_issue_comments(cfg):
                 'avatarUrl': comment['user']['avatar_url']
             }
         }
-        comments_and_replies.append(comment_data)
+        for comment in data
+    ]
 
     comments_and_replies.sort(key=lambda x: x['createdAt'], reverse=True)
-
-    output_dir = 'output'
-    os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, 'latest_issues.json')
-    with open(output_file, 'w') as f:
-        json.dump(comments_and_replies, f, indent=2)
-        logging.info(f"Comments have been saved to {output_file}")
+    save_to_file(comments_and_replies, 'latest_issues.json')
 
 def fetch_discussion_comments(cfg):
-    owner = cfg['discussion']['github_user']
-    repo_name = cfg['discussion']['github_repo']
-    category_id = cfg['discussion']['category_id']
-    limit = cfg['discussion']['limit']
+    owner, repo_name, category_id, limit = cfg['discussion'].values()
     token = os.getenv('GITHUB_TOKEN')
-
-    query = """
-    query {
-      repository(owner: "%s", name: "%s") {
-        discussions(last: 100, categoryId: "%s") {
-          nodes {
-            id
-            title
-            comments(last: %d) {
-              nodes {
-                id
+    query = f"""
+    query {{
+      repository(owner: "{owner}", name: "{repo_name}") {{
+        discussions(last: 100, categoryId: "{category_id}") {{
+          nodes {{
+            comments(last: {limit}) {{
+              nodes {{
                 body
                 createdAt
                 url
-                author {
+                author {{
                   login
                   avatarUrl
-                }
-                replies(last: %d) {
-                  nodes {
+                }}
+                replies(last: {limit}) {{
+                  nodes {{
                     body
                     createdAt
-                    author {
+                    author {{
                       login
                       avatarUrl
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    """ % (owner, repo_name, category_id, limit, limit)
+                    }}
+                  }}
+                }}
+              }}
+            }}
+          }}
+        }}
+      }}
+    }}
+    """
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -121,34 +117,24 @@ def fetch_discussion_comments(cfg):
 
     data = response.json()
     comments_and_replies = []
+
     for discussion in data['data']['repository']['discussions']['nodes']:
         for comment in discussion['comments']['nodes']:
-            comment_data = {
+            comments_and_replies.append({
                 'body': comment['body'],
                 'createdAt': comment['createdAt'],
                 'url': comment['url'],
                 'author': comment['author']
-            }
-            comments_and_replies.append(comment_data)
-
-            for reply in comment['replies']['nodes']:
-                reply_data = {
-                    'body': reply['body'],
-                    'createdAt': reply['createdAt'],
-                    'url': comment['url'],
-                    'author': reply['author']
-                }
-                comments_and_replies.append(reply_data)
+            })
+            comments_and_replies.extend({
+                'body': reply['body'],
+                'createdAt': reply['createdAt'],
+                'url': comment['url'],
+                'author': reply['author']
+            } for reply in comment['replies']['nodes'])
 
     comments_and_replies.sort(key=lambda x: x['createdAt'], reverse=True)
-    comments_and_replies = comments_and_replies[:limit]
-
-    output_dir = 'output'
-    os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, 'latest_discussion.json')
-    with open(output_file, 'w') as f:
-        json.dump(comments_and_replies, f, indent=2)
-        logging.info(f"Comments have been saved to {output_file}")
+    save_to_file(comments_and_replies[:limit], 'latest_discussion.json')
 
 def main():
     cfg = load_config()
