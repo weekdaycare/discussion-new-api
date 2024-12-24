@@ -1,0 +1,14 @@
+# 基于 issue 的评论区如 beadur
+issue:
+  enable: # true
+  github_user: "weekdaycare"
+  github_repo: "weekdaycare.github.io"
+  limit: 20 # 默认为 10
+
+# 基于 disccusion 的评论区如 giscus
+discussion:
+  enable: # true
+  github_user: "weekdaycare"
+  github_repo: "weekdaycare.github.io"
+  category_id: "DIC_xxx" # https://giscus.app/zh-CN
+  limit: 20 # 默认为 10
