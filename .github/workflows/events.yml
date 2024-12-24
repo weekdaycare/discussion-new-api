@@ -20,8 +20,6 @@ jobs:
           discussion_enable: 'true'
           category_id: 'DIC_xxx'  # 可选
           limit: '20'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Git config
         run: |
