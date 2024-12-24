@@ -16,10 +16,9 @@ jobs:
       - name: Fetch Comments
         uses: ./
         with:
-          issue_enable: 'true'
           discussion_enable: 'true'
-          category_id: 'DIC_xxx'  # 可选
-          limit: '20'
+          category_id: 'DIC_kwDONhvWjc4ClfPP'  # 可选
+          limit: '20' # 可选
 
       - name: Git config
         run: |

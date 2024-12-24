@@ -1,6 +1,6 @@
-name: 'Fetch Comments on Events'
-description: 'Fetches and processes comments from GitHub Issues and Discussions.'
-author: 'Your Name <your-email@example.com>'
+name: "Issues and Discussions Comments"
+description: "Fetches comments from GitHub Issues and Discussions and saves them as JSON files."
+author: "weekdaycare"
 inputs:
   issue_enable:
     description: 'Enable fetching issue comments'
@@ -18,31 +18,15 @@ inputs:
     required: false
     default: '10'
 runs:
-  using: 'composite'
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.x"
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-      shell: bash
-
-    - name: Fetch comments
-      run: python get_comments/fetch_comments.py
-      shell: bash
-      env:
-        GITHUB_TOKEN: ${{ github.token }}  # 使用 github.token
-        ISSUE_ENABLE: ${{ inputs.issue_enable }}
-        DISCUSSION_ENABLE: ${{ inputs.discussion_enable }}
-        GITHUB_REPO: ${{ github.repository }}
-        CATEGORY_ID: ${{ inputs.category_id }}
-        LIMIT: ${{ inputs.limit }}
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    GITHUB_TOKEN: ${{ github.token }}
+    ISSUE_ENABLE: ${{ inputs.issue_enable }}
+    DISCUSSION_ENABLE: ${{ inputs.discussion_enable }}
+    GITHUB_REPO: ${{ github.repository }}
+    CATEGORY_ID: ${{ inputs.category_id }}
+    LIMIT: ${{ inputs.limit }}
 branding:
   icon: 'message-circle'
   color: 'orange'
