@@ -38,7 +38,7 @@ runs:
       run: python get_comments/fetch_comments.py
       shell: python
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}  # 使用 github.token
         ISSUE_ENABLE: ${{ inputs.issue_enable }}
         DISCUSSION_ENABLE: ${{ inputs.discussion_enable }}
         GITHUB_REPO: ${{ github.repository }}
