@@ -43,7 +43,9 @@ def save_to_file(data, filename):
     logging.info(f"Comments have been saved to {output_file}")
 
 def fetch_issue_comments(cfg):
-    owner, repo_name, limit = cfg['issue'].values()
+    owner = cfg['issue']['github_user']
+    repo_name = cfg['issue']['github_repo']
+    limit = cfg['issue']['limit']
     token = os.getenv('GITHUB_TOKEN')
     url = f"https://api.github.com/repos/{owner}/{repo_name}/issues/comments"
     headers = {
@@ -69,7 +71,10 @@ def fetch_issue_comments(cfg):
     save_to_file(comments_and_replies, 'latest_issues.json')
 
 def fetch_discussion_comments(cfg):
-    owner, repo_name, category_id, limit = cfg['discussion'].values()
+    owner = cfg['discussion']['github_user']
+    repo_name = cfg['discussion']['github_repo']
+    category_id = cfg['discussion']['category_id']
+    limit = cfg['discussion']['limit']
     token = os.getenv('GITHUB_TOKEN')
     query = f"""
     query {{
