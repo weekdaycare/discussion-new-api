@@ -2,6 +2,12 @@ name: "Issues and Discussions Comments"
 description: "Fetches comments from GitHub Issues and Discussions and saves them as JSON files."
 author: "weekdaycare"
 inputs:
+  github_repo:
+    description: 'GitHub repository in the format user/repo'
+    required: true
+  github_token:
+    description: 'GitHub token for authentication'
+    required: true
   issue_enable:
     description: 'Enable fetching issue comments'
     required: false
@@ -21,10 +27,10 @@ runs:
   using: 'docker'
   image: 'Dockerfile'
   env:
-    GITHUB_TOKEN: ${{ github.token }}
+    GITHUB_REPO: ${{ inputs.GITHUB_REPO }}
+    GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
     ISSUE_ENABLE: ${{ inputs.issue_enable }}
     DISCUSSION_ENABLE: ${{ inputs.discussion_enable }}
-    GITHUB_REPO: ${{ github.repository }}
     CATEGORY_ID: ${{ inputs.category_id }}
     LIMIT: ${{ inputs.limit }}
 branding:
