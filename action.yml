@@ -35,7 +35,6 @@ runs:
 
     - name: Fetch comments
       run: python get_comments/fetch_comments.py
-      shell: python
       env:
         GITHUB_TOKEN: ${{ github.token }}  # 使用 github.token
         ISSUE_ENABLE: ${{ inputs.issue_enable }}
